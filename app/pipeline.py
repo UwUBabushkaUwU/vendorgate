@@ -15,6 +15,7 @@ Every check produces a finding with a severity:
   reject           hard policy stop       -> REJECTED
 The decision is simply the most serious finding. No scoring, no AI vote.
 """
+from concurrent.futures import ThreadPoolExecutor
 import os
 import time
 import traceback
@@ -124,11 +125,15 @@ class Run:
     def read(self):
         out, engines, cards = [], set(), []
         expected = {"tax_doc": "tax_registration_certificate", "bank_doc": "bank_proof"}
+        paths = {slot: self.sub.get(slot) for slot in expected if self.sub.get(slot)}
+        # read both documents at the same time: each AI read is a slow network call
+        with ThreadPoolExecutor(max_workers=max(1, len(paths))) as pool:
+            results = dict(zip(paths, pool.map(extract.read_document, paths.values())))
         for slot, want in expected.items():
-            path = self.sub.get(slot)
+            path = paths.get(slot)
             if not path:
                 continue
-            doc = extract.read_document(path)
+            doc = results[slot]
             self.docs[slot] = doc
             engines.add(doc["engine"])
             got = doc["doc_type"]

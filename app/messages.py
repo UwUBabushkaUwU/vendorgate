@@ -58,7 +58,7 @@ def _polish(asks, legal_name):
         'Return ONLY JSON: {"items": ["...", "..."]} with the same number of items in the same order.\n\n'
         + json.dumps(asks, indent=1))
     try:
-        text, model = extract.gemini_call([{"text": prompt}], timeout=15.0)
+        text, model = extract.gemini_call([{"text": prompt}], timeout=25.0)
         items = extract._parse_json(text)["items"]
         assert len(items) == len(asks)
         for src, new in zip(asks, items):

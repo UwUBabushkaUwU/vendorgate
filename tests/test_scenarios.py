@@ -197,3 +197,48 @@ def test_ai_rewording_is_rejected_if_it_changes_an_identifier(monkeypatch):
     assert messages._polish(asks, "Kaveri")[1] == "template"
     monkeypatch.setattr(extract, "gemini_call", lambda parts, **k: ('{"items": ["You gave PAN BKRPS4471Q, but your registration uses AAKFK9034L. Please send that one."]}', "m"))
     assert messages._polish(asks, "Kaveri")[1].startswith("Gemini")
+
+
+def test_thinking_is_minimal_and_dropped_if_a_model_rejects_it(monkeypatch):
+    from app import extract
+    monkeypatch.setenv("GEMINI_API_KEY", "test-key")
+    extract._working_model["name"] = None
+    extract._no_thinking_cfg.clear()
+    seen = []
+
+    def fake_post(url, json=None, timeout=None, headers=None):
+        cfg = json["generationConfig"].get("thinkingConfig")
+        seen.append(cfg)
+        if cfg is not None:
+            return FakeResponse(400)  # pretend this model does not accept the setting
+        return gemini_reply({"doc_type": "bank_proof", "confidence": 0.9, "summary": "x"})
+
+    monkeypatch.setattr(extract.httpx, "post", fake_post)
+    text, model = extract.gemini_call([{"text": "hi"}])
+    assert seen[0] == {"thinkingLevel": "minimal"} and seen[1] is None
+    assert model == "gemini-3.6-flash"
+    extract._working_model["name"] = None
+    extract._no_thinking_cfg.clear()
+
+
+def test_both_documents_are_read_at_the_same_time(monkeypatch):
+    import threading
+    import time as _t
+    from app import extract
+    monkeypatch.setenv("GEMINI_API_KEY", "test-key")
+    extract._working_model["name"] = None
+    live, peak, lock = [0], [0], threading.Lock()
+
+    def slow_read(path):
+        with lock:
+            live[0] += 1
+            peak[0] = max(peak[0], live[0])
+        _t.sleep(0.3)
+        with lock:
+            live[0] -= 1
+        return extract.read_locally(path)
+
+    monkeypatch.setattr(extract, "read_document", slow_read)
+    r = run("happy")
+    assert peak[0] == 2
+    assert (r["status"], r["lane"]) == ("approved", "auto")

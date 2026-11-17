@@ -77,24 +77,46 @@ def gemini_key():
 _working_model = {"name": None}
 
 
-def gemini_call(parts, want_json=True, timeout=25.0):
+_no_thinking_cfg = set()  # models that rejected our thinking setting
+
+
+def _thinking(model):
+    """Reading a certificate needs no deep reasoning: keep thinking minimal for speed."""
+    level = os.environ.get("GEMINI_THINKING", "minimal").strip().lower()
+    if level in ("", "default", "off") or model in _no_thinking_cfg:
+        return None
+    if model.startswith("gemini-2.5"):
+        return {"thinkingBudget": 0}
+    return {"thinkingLevel": level}
+
+
+def gemini_call(parts, want_json=True, timeout=40.0):
     """Call Gemini. Returns (text, model). Raises on failure."""
     key = gemini_key()
     if not key:
         raise RuntimeError("no GEMINI_API_KEY set")
-    body = {"contents": [{"parts": parts}], "generationConfig": {"temperature": 0}}
-    if want_json:
-        body["generationConfig"]["responseMimeType"] = "application/json"
     models = gemini_models()
     if _working_model["name"]:
         models = [_working_model["name"]]
     last = None
     for model in models:
-        try:
-            r = httpx.post(GEMINI_URL.format(model=model), json=body, timeout=timeout,
-                           headers={"x-goog-api-key": key, "Content-Type": "application/json"})
-        except Exception as e:  # network error / timeout
-            raise RuntimeError(f"Gemini request failed: {type(e).__name__}")
+        for attempt in (1, 2):
+            gen = {"temperature": 0}
+            if want_json:
+                gen["responseMimeType"] = "application/json"
+            think = _thinking(model)
+            if think:
+                gen["thinkingConfig"] = think
+            body = {"contents": [{"parts": parts}], "generationConfig": gen}
+            try:
+                r = httpx.post(GEMINI_URL.format(model=model), json=body, timeout=timeout,
+                               headers={"x-goog-api-key": key, "Content-Type": "application/json"})
+            except Exception as e:  # network error / timeout
+                raise RuntimeError(f"Gemini request failed: {type(e).__name__}")
+            if r.status_code == 400 and think and attempt == 1:
+                _no_thinking_cfg.add(model)  # this model rejects the setting: retry without it
+                continue
+            break
         if r.status_code == 404:  # model name not available on this key: try the next
             last = f"model {model} not found"
             continue
@@ -102,7 +124,8 @@ def gemini_call(parts, want_json=True, timeout=25.0):
             raise RuntimeError(f"Gemini returned HTTP {r.status_code}")
         data = r.json()
         try:
-            text = "".join(p.get("text", "") for p in data["candidates"][0]["content"]["parts"])
+            text = "".join(p.get("text", "") for p in data["candidates"][0]["content"]["parts"]
+                           if not p.get("thought"))
         except Exception:
             raise RuntimeError("Gemini returned no content")
         _working_model["name"] = model
