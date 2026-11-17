@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>VendorGate · Vendor onboarding</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230b5d57'/%3E%3Cpath d='M9 16.5l5 5 9-11' stroke='white' stroke-width='3.4' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#f5f4f0; --panel:#fff; --ink:#1a1e23; --muted:#646b78; --line:#e3e0d9; --soft:#faf9f6;
+  --accent:#0b5d57; --accent-ink:#fff; --side:#14181d;
+  --ok:#17794a; --ok-bg:#e4f3ea; --warn:#955400; --warn-bg:#fcefd6; --rev:#5a3db0; --rev-bg:#eeeafb;
+  --bad:#b3261e; --bad-bg:#fce8e6; --run:#1657c5; --run-bg:#e4eefc;
+  --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{font:14.5px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;color:var(--ink);background:var(--bg)}
+button,input,select,textarea{font:inherit;color:inherit}
+a{color:var(--accent)}
+.app{display:grid;grid-template-columns:232px 1fr;min-height:100vh}
+aside{background:var(--side);color:#d7dbe0;padding:22px 14px;display:flex;flex-direction:column;gap:4px;position:sticky;top:0;height:100vh}
+.brand{font-size:19px;font-weight:700;color:#fff;letter-spacing:-.2px;padding:0 10px}
+.brand span{color:#5fd0c0}
+.tagline{font-size:12px;color:#8d96a3;padding:2px 10px 18px}
+nav a{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:8px;color:#c5cbd3;text-decoration:none;font-weight:500}
+nav a:hover{background:#1f252c;color:#fff}
+nav a.on{background:#252c35;color:#fff}
+nav a .count{margin-left:auto;background:var(--rev);color:#fff;border-radius:99px;font-size:11.5px;padding:1px 8px;font-weight:600}
+.sys{margin-top:auto;font-size:12px;color:#8d96a3;padding:10px;border-top:1px solid #262d36;display:grid;gap:6px}
+.sys b{color:#d7dbe0;font-weight:600}
+.dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;background:#5fd0c0}
+.dot.off{background:#d9a441}
+main{padding:28px 36px 60px;max-width:1280px;width:100%}
+h1{font-size:23px;margin:0 0 4px;letter-spacing:-.3px}
+h2{font-size:15px;margin:0 0 12px}
+.lead{color:var(--muted);margin:0 0 22px;max-width:760px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px 20px}
+.muted{color:var(--muted)} .mono{font-family:var(--mono);font-size:13px}
+.btn{border:1px solid var(--line);background:#fff;border-radius:8px;padding:8px 14px;font-weight:600;cursor:pointer}
+.btn{text-decoration:none;display:inline-block;color:var(--ink)}
+.btn:hover{border-color:#bdb9af}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.primary:hover{filter:brightness(1.1)}
+.btn.danger{color:var(--bad)} .btn.good{color:var(--ok)}
+.btn:disabled{opacity:.55;cursor:not-allowed}
+.btn.small{padding:5px 10px;font-size:13px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+/* badges */
+.badge{display:inline-flex;align-items:center;gap:6px;border-radius:99px;padding:3px 10px;font-size:12.5px;font-weight:600;white-space:nowrap}
+.b-approved{background:var(--ok-bg);color:var(--ok)} .b-vendor{background:var(--warn-bg);color:var(--warn)}
+.b-review{background:var(--rev-bg);color:var(--rev)} .b-rejected{background:var(--bad-bg);color:var(--bad)}
+.b-running{background:var(--run-bg);color:var(--run)} .b-tag{background:#eceae4;color:#4b515c}
+
+/* scenarios */
+.scen{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:20px}
+.scen button{text-align:left;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px;cursor:pointer;display:flex;flex-direction:column;gap:6px}
+.scen button:hover{border-color:var(--accent)}
+.scen button.on{border-color:var(--accent);box-shadow:0 0 0 2px rgba(11,93,87,.18)}
+.scen .badge{align-self:flex-start}
+.scen .t{font-weight:650;font-size:13.5px;line-height:1.3}
+.scen .d{font-size:12.5px;color:var(--muted);line-height:1.4}
+
+/* form */
+.formgrid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+fieldset{border:1px solid var(--line);border-radius:12px;background:var(--panel);padding:16px 18px;margin:0;min-width:0}
+legend{font-weight:650;padding:0 6px;font-size:13.5px}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+label{display:block;font-size:12.5px;font-weight:600;color:#4b515c;margin:10px 0 4px}
+input[type=text],input[type=email],select,textarea{width:100%;border:1px solid #d3cfc6;border-radius:8px;padding:8px 10px;background:#fff}
+textarea{resize:vertical;min-height:70px}
+.drop{border:1.5px dashed #cbc6bb;border-radius:10px;padding:12px;background:var(--soft);margin-top:4px}
+.drop .file{display:flex;align-items:center;gap:8px;font-size:13px;margin-bottom:8px;flex-wrap:wrap}
+.drop .file b{font-weight:600;word-break:break-all}
+.drop input[type=file]{font-size:12.5px;max-width:100%}
+.submitbar{display:flex;align-items:center;gap:14px;margin-top:18px}
+.banner{border-radius:10px;padding:12px 16px;margin-bottom:18px;border:1px solid}
+.banner.warn{background:var(--warn-bg);border-color:#ecd29c}
+.banner.err{background:var(--bad-bg);border-color:#f0b8b3;color:var(--bad)}
+.banner ol{margin:6px 0 0;padding-left:20px}
+
+/* run view */
+.runhead{display:flex;align-items:flex-start;gap:14px;flex-wrap:wrap;margin-bottom:20px}
+.runhead .meta{color:var(--muted);font-size:13.5px;display:flex;gap:14px;flex-wrap:wrap;align-items:center}
+.rungrid{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:20px;align-items:start}
+.stage{display:grid;grid-template-columns:34px 1fr;gap:12px;position:relative;padding-bottom:16px}
+.stage:not(:last-child)::before{content:"";position:absolute;left:16px;top:34px;bottom:0;width:2px;background:var(--line)}
+.stage.done:not(:last-child)::before{background:#b9d8c7}
+.ico{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font-weight:700;font-size:15px;background:#eceae4;color:#8a8f99;z-index:1}
+.s-pass .ico{background:var(--ok-bg);color:var(--ok)} .s-action .ico{background:var(--warn-bg);color:var(--warn)}
+.s-review .ico{background:var(--rev-bg);color:var(--rev)} .s-stop .ico{background:var(--bad-bg);color:var(--bad)}
+.s-running .ico{background:var(--run-bg);color:var(--run)}
+.spin{width:16px;height:16px;border:2.5px solid #b8cff5;border-top-color:var(--run);border-radius:50%;animation:sp .7s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.spin{animation:none}}
+.stage .body{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 16px;min-width:0}
+.s-waiting .body,.s-skipped .body{background:transparent;border-style:dashed;color:var(--muted)}
+.s-running .body{border-color:#9dbdf2;box-shadow:0 0 0 3px rgba(22,87,197,.08)}
+.stage .top{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.stage .name{font-weight:650}
+.stage .sum{margin-left:auto;font-size:13px;font-weight:600}
+.s-pass .sum{color:var(--ok)} .s-action .sum{color:var(--warn)} .s-review .sum{color:var(--rev)} .s-stop .sum{color:var(--bad)} .s-running .sum{color:var(--run)}
+.stage .q{font-size:13px;color:var(--muted)}
+.finding{display:grid;grid-template-columns:22px 1fr;gap:8px;padding:8px 0;border-top:1px solid #efede7;font-size:13.5px}
+.finding:first-child{border-top:0}
+.finding .fi{font-weight:700;text-align:center}
+.f-pass .fi{color:var(--ok)} .f-info .fi{color:#8a8f99} .f-vendor_fix .fi{color:var(--warn)} .f-review .fi{color:var(--rev)} .f-reject .fi{color:var(--bad)}
+.finding .ft{font-weight:600}
+.finding .fd{color:#525967;font-size:13px}
+.finding .sev{font-size:11.5px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;margin-left:8px}
+.f-vendor_fix .sev{color:var(--warn)} .f-review .sev{color:var(--rev)} .f-reject .sev{color:var(--bad)}
+.flist{margin-top:10px}
+details.passes{margin-top:8px;font-size:13px}
+details.passes summary{cursor:pointer;color:var(--ok);font-weight:600}
+.doc{border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-top:10px;background:var(--soft);font-size:13px}
+.doc .dh{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:6px}
+.kv{display:grid;grid-template-columns:150px 1fr;gap:2px 10px;font-size:12.5px}
+.kv dt{color:var(--muted)} .kv dd{margin:0;font-family:var(--mono);word-break:break-word}
+.side{display:grid;gap:16px;position:sticky;top:20px}
+.decision{border-width:2px}
+.decision.d-approved{border-color:#9fd3b5;background:#f3fbf6} .decision.d-vendor{border-color:#e9c97e;background:#fffaf0}
+.decision.d-review{border-color:#c2b4ee;background:#f8f6fe} .decision.d-rejected{border-color:#eaa9a3;background:#fff6f5}
+.decision .big{font-size:20px;font-weight:700;letter-spacing:-.2px;margin:8px 0 4px}
+.decision ul{margin:10px 0 0;padding-left:18px} .decision li{margin:4px 0}
+.tabs{display:flex;gap:6px;margin-bottom:10px}
+.tabs button{border:1px solid var(--line);background:#fff;border-radius:99px;padding:4px 12px;font-size:13px;font-weight:600;cursor:pointer}
+.tabs button.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.mail{border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.mail .mh{background:var(--soft);padding:10px 12px;font-size:13px;border-bottom:1px solid var(--line)}
+.mail pre{margin:0;padding:12px;white-space:pre-wrap;font:13.5px/1.55 inherit;font-family:inherit}
+.pending-msg{color:var(--muted);font-size:13.5px}
+
+/* dashboard */
+.kpis{display:grid;grid-template-columns:repeat(7,1fr);gap:10px;margin-bottom:20px}
+.kpi{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+.kpi .v{font-size:24px;font-weight:700;letter-spacing:-.4px}
+.kpi .l{font-size:12.5px;color:var(--muted)}
+.toolbar{display:flex;gap:8px;align-items:center;margin-bottom:12px;flex-wrap:wrap}
+.chip{border:1px solid var(--line);background:#fff;border-radius:99px;padding:5px 12px;font-size:13px;font-weight:600;cursor:pointer}
+.chip.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+table{width:100%;border-collapse:collapse;font-size:13.5px}
+th{text-align:left;font-size:12px;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);padding:8px 10px;border-bottom:1px solid var(--line);font-weight:650}
+td{padding:10px;border-bottom:1px solid #efede7;vertical-align:top}
+tr.click{cursor:pointer} tr.click:hover td{background:var(--soft)}
+.tablewrap{overflow-x:auto}
+.attention{border-color:#c2b4ee;background:#f8f6fe;margin-bottom:18px}
+.attention .item{display:flex;gap:12px;align-items:center;padding:8px 0;border-top:1px solid #e3dcf7;flex-wrap:wrap}
+.attention .item:first-of-type{border-top:0}
+.empty{text-align:center;color:var(--muted);padding:34px 10px}
+.policy{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.policy div{border-radius:10px;padding:12px;font-size:13px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media (max-width:1100px){.scen{grid-template-columns:repeat(2,1fr)}.kpis{grid-template-columns:repeat(4,1fr)}.rungrid,.formgrid,.two{grid-template-columns:1fr}.side{position:static}.policy{grid-template-columns:1fr 1fr}}
+@media (max-width:760px){.app{grid-template-columns:1fr}aside{position:static;height:auto}main{padding:20px 16px}.row{grid-template-columns:1fr}.kpis{grid-template-columns:1fr 1fr}}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside>
+    <div class="brand">Vendor<span>Gate</span></div>
+    <div class="tagline">Vendor onboarding, checked and explained</div>
+    <nav>
+      <a href="#/new" data-nav="new">New submission</a>
+      <a href="#/dashboard" data-nav="dashboard">Dashboard <span class="count" id="navcount" hidden></span></a>
+      <a href="#/reference" data-nav="reference">Rules &amp; reference data</a>
+    </nav>
+    <div class="sys" id="sys"></div>
+  </aside>
+  <main id="view"></main>
+</div>
+
+<script>
+const $ = (s, el = document) => el.querySelector(s);
+const $$ = (s, el = document) => [...el.querySelectorAll(s)];
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+let META = null, pollTimer = null, dashTimer = null;
+const view = $('#view');
+
+async function api(path, opts) {
+  const r = await fetch(path, opts);
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(data.error || data.detail || ('Request failed (' + r.status + ')'));
+  return data;
+}
+const fmtTime = iso => iso ? new Date(iso).toLocaleString([], {day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit'}) : '';
+const fmtDur = ms => ms == null ? '' : ms < 1000 ? ms + ' ms' : (ms / 1000).toFixed(1) + ' s';
+
+function badge(r) {
+  if (r.state === 'running') return '<span class="badge b-running">● Running</span>';
+  const by = r.lane === 'human' ? ' · by reviewer' : '';
+  if (r.status === 'approved') return `<span class="badge b-approved">✓ Approved${by}</span>`;
+  if (r.status === 'rejected') return `<span class="badge b-rejected">✕ Rejected${by}</span>`;
+  if (r.lane === 'review') return '<span class="badge b-review">⚑ Pending · needs review</span>';
+  return '<span class="badge b-vendor">↩ Pending · waiting on vendor</span>';
+}
+const laneClass = r => r.status === 'approved' ? 'approved' : r.status === 'rejected' ? 'rejected' : r.lane === 'review' ? 'review' : 'vendor';
+
+/* ---------------- router ---------------- */
+function route() {
+  clearInterval(pollTimer); clearInterval(dashTimer);
+  const h = location.hash || '#/new';
+  const [path, query] = h.slice(2).split('?');
+  const parts = path.split('/');
+  const params = new URLSearchParams(query || '');
+  $$('nav a').forEach(a => a.classList.toggle('on', a.dataset.nav === parts[0] || (parts[0] === 'run' && a.dataset.nav === 'dashboard')));
+  window.scrollTo(0, 0);
+  if (parts[0] === 'run') return showRun(parts[1]);
+  if (parts[0] === 'dashboard') return showDashboard();
+  if (parts[0] === 'reference') return showReference();
+  return showNew(params.get('resubmit'));
+}
+window.addEventListener('hashchange', route);
+
+async function boot() {
+  META = await api('/api/meta');
+  $('#sys').innerHTML =
+    `<div><span class="dot ${META.ai.configured ? '' : 'off'}"></span><b>Document reader</b><br>${META.ai.configured ? 'Gemini (' + esc(META.ai.model) + ')' : 'Local parser (no AI key set)'}</div>` +
+    `<div><span class="dot ${META.email ? '' : 'off'}"></span><b>Vendor email</b><br>${META.email ? 'Sending switched on' : 'Saved to outbox'}</div>`;
+  const qs = new URLSearchParams(location.search);
+  if (qs.get('resubmit')) { history.replaceState(null, '', location.pathname); location.hash = '#/new?resubmit=' + encodeURIComponent(qs.get('resubmit')); }
+  route(); refreshCount();
+  setInterval(refreshCount, 5000);
+}
+async function refreshCount() {
+  try {
+    const d = await api('/api/runs'); const n = d.kpi.pending_review; const el = $('#navcount');
+    el.hidden = !n; el.textContent = n;
+  } catch (e) {}
+}
+
+/* ---------------- new submission ---------------- */
+const FIELDS = ['legal_name','trading_name','country','tax_id','pan','address','state_region','contact_name','contact_email','contact_phone','bank_account_holder','bank_account','bank_code'];
+let formState = {};
+
+async function showNew(resubmitId) {
+  formState = {scenario: null, parent: null, docs: {tax_doc: {mode:'none'}, bank_doc: {mode:'none'}}, fix: null};
+  let parent = null, banner = '';
+  if (resubmitId) {
+    try { parent = await api('/api/runs/' + encodeURIComponent(resubmitId)); } catch (e) { banner = `<div class="banner err">Run ${esc(resubmitId)} was not found.</div>`; }
+  }
+  if (parent) {
+    formState.parent = parent.id;
+    const asks = (parent.decision?.decisive || []).filter(f => f.ask);
+    const sc = META.scenarios.find(s => s.tag === (parent.scenario || '').split(' · ')[0]);
+    formState.fix = sc && sc.fix ? sc.fix : null;
+    for (const slot of ['tax_doc','bank_doc']) if (parent.submission[slot + '_name']) formState.docs[slot] = {mode:'keep', name: parent.submission[slot + '_name']};
+    banner = `<div class="banner warn"><b>Resubmission for ${esc(parent.id)} · ${esc(parent.vendor_name)}</b><br>
+      This is the form the vendor opens from the link in their email. Their earlier answers are filled in; they only correct what was asked for.
+      ${asks.length ? '<ol>' + asks.map(f => `<li>${esc(f.ask)}</li>`).join('') + '</ol>' : ''}
+      ${formState.fix ? '<div style="margin-top:10px"><button class="btn small" id="usefix">Attach the corrected sample document</button></div>' : ''}</div>`;
+  }
+  view.innerHTML = `
+    <h1>${parent ? 'Resubmit corrections' : 'New vendor submission'}</h1>
+    <p class="lead">${parent ? 'Every check is re-run from scratch on resubmission. Nothing is assumed from the first attempt.' :
+      'A vendor sends company details, bank details and two documents. The process checks that they are complete, valid and consistent, then decides: approved, pending or rejected.'}</p>
+    ${banner}
+    ${parent ? '' : `<h2>Load a rehearsed case <span class="muted" style="font-weight:400">or fill the form in yourself</span></h2>
+    <div class="scen">${META.scenarios.map(s => `<button type="button" data-sc="${s.key}"><span class="badge b-tag">${esc(s.tag)}</span><span class="t">${esc(s.title)}</span><span class="d">${esc(s.teaser)}</span></button>`).join('')}</div>`}
+    <form id="f" novalidate>
+      <div class="formgrid">
+        <fieldset><legend>Company</legend>
+          <label for="legal_name">Registered legal name</label><input type="text" id="legal_name" name="legal_name" autocomplete="off">
+          <label for="trading_name">Trading name, if different <span class="muted">(optional)</span></label><input type="text" id="trading_name" name="trading_name" autocomplete="off">
+          <div class="row">
+            <div><label for="country">Country of registration</label><select id="country" name="country">${Object.entries(META.countries).map(([k, v]) => `<option value="${k}">${esc(v)}</option>`).join('')}</select></div>
+            <div><label for="state_region">State / region</label><input type="text" id="state_region" name="state_region" autocomplete="off"></div>
+          </div>
+          <label for="address">Registered address</label><input type="text" id="address" name="address" autocomplete="off">
+        </fieldset>
+        <fieldset><legend>Tax registration</legend>
+          <label for="tax_id" id="tax_label">Tax registration number</label><input type="text" id="tax_id" name="tax_id" class="mono" autocomplete="off">
+          <div id="pan_wrap"><label for="pan">PAN <span class="muted">(India)</span></label><input type="text" id="pan" name="pan" class="mono" autocomplete="off"></div>
+          <label>Tax registration certificate</label><div class="drop" data-slot="tax_doc"></div>
+        </fieldset>
+        <fieldset><legend>Contact person</legend>
+          <label for="contact_name">Name</label><input type="text" id="contact_name" name="contact_name" autocomplete="off">
+          <div class="row">
+            <div><label for="contact_email">Email</label><input type="email" id="contact_email" name="contact_email" autocomplete="off"></div>
+            <div><label for="contact_phone">Phone <span class="muted">(optional)</span></label><input type="text" id="contact_phone" name="contact_phone" autocomplete="off"></div>
+          </div>
+        </fieldset>
+        <fieldset><legend>Bank details</legend>
+          <label for="bank_account_holder">Account holder name</label><input type="text" id="bank_account_holder" name="bank_account_holder" autocomplete="off">
+          <div class="row">
+            <div><label for="bank_account" id="acct_label">Account number</label><input type="text" id="bank_account" name="bank_account" class="mono" autocomplete="off"></div>
+            <div id="code_wrap"><label for="bank_code" id="code_label">IFSC</label><input type="text" id="bank_code" name="bank_code" class="mono" autocomplete="off"></div>
+          </div>
+          <label>Bank proof <span class="muted">(bank letter or cancelled cheque)</span></label><div class="drop" data-slot="bank_doc"></div>
+        </fieldset>
+      </div>
+      <div id="formerr"></div>
+      <div class="submitbar">
+        <button class="btn primary" type="submit" id="go">Run onboarding check</button>
+        <span class="muted" id="expect"></span>
+      </div>
+    </form>`;
+  $('#country').addEventListener('change', countryLabels);
+  $$('.scen button').forEach(b => b.addEventListener('click', () => loadScenario(b.dataset.sc)));
+  if (parent) { FIELDS.forEach(k => { $('#' + k).value = parent.submission[k] || ''; }); }
+  if ($('#usefix')) $('#usefix').addEventListener('click', e => {
+    e.preventDefault();
+    for (const [slot, name] of Object.entries(formState.fix)) formState.docs[slot] = {mode:'sample', name};
+    drawDocs(); e.target.textContent = 'Corrected document attached'; e.target.disabled = true;
+  });
+  countryLabels(); drawDocs();
+  $('#f').addEventListener('submit', submitForm);
+}
+
+function countryLabels() {
+  const c = $('#country').value, iban = META.uses_iban.includes(c);
+  $('#tax_label').textContent = META.tax_label[c] || 'Tax registration number';
+  $('#pan_wrap').style.display = c === 'IN' ? '' : 'none';
+  $('#acct_label').textContent = iban ? 'IBAN' : 'Account number';
+  $('#code_wrap').style.display = iban ? 'none' : '';
+  $('#code_label').textContent = c === 'US' ? 'Routing number' : 'IFSC';
+}
+
+function drawDocs() {
+  $$('.drop').forEach(el => {
+    const slot = el.dataset.slot, d = formState.docs[slot];
+    let line = '<span class="muted">No file attached yet.</span>';
+    if (d.mode === 'sample') line = `📄 <b>${esc(d.name)}</b> <span class="badge b-tag">sample</span> <a href="/samples/${encodeURIComponent(d.name)}" target="_blank" rel="noopener">open</a>`;
+    if (d.mode === 'keep') line = `📄 <b>${esc(d.name)}</b> <span class="badge b-tag">from first submission</span>`;
+    if (d.mode === 'upload') line = `📄 <b>${esc(d.name)}</b> <span class="badge b-tag">your upload</span>`;
+    el.innerHTML = `<div class="file">${line}</div><input type="file" accept=".pdf,.png,.jpg,.jpeg,.webp" aria-label="Choose a file">`;
+    $('input', el).addEventListener('change', ev => {
+      const file = ev.target.files[0];
+      if (file) { formState.docs[slot] = {mode:'upload', name:file.name, file}; drawDocs(); }
+    });
+  });
+}
+
+function loadScenario(key) {
+  const s = META.scenarios.find(x => x.key === key);
+  formState.scenario = key;
+  FIELDS.forEach(k => { $('#' + k).value = s.form[k] || ''; });
+  formState.docs = {tax_doc: {mode:'sample', name:s.tax_doc}, bank_doc: {mode:'sample', name:s.bank_doc}};
+  $$('.scen button').forEach(b => b.classList.toggle('on', b.dataset.sc === key));
+  $('#expect').textContent = 'Expected outcome: ' + s.expect;
+  countryLabels(); drawDocs();
+}
+
+async function submitForm(ev) {
+  ev.preventDefault();
+  const fd = new FormData();
+  FIELDS.forEach(k => fd.append(k, $('#' + k).value));
+  if ($('#country').value !== 'IN') fd.set('pan', '');
+  if (META.uses_iban.includes($('#country').value)) fd.set('bank_code', '');
+  for (const slot of ['tax_doc','bank_doc']) {
+    const d = formState.docs[slot];
+    if (d.mode === 'upload') fd.append(slot, d.file, d.name);
+    if (d.mode === 'sample') fd.append('sample_' + slot, d.name);
+    if (d.mode === 'keep') fd.append('keep_' + slot, '1');
+  }
+  if (formState.scenario) fd.append('scenario', formState.scenario);
+  if (formState.parent) fd.append('parent_id', formState.parent);
+  const go = $('#go'); go.disabled = true; go.textContent = 'Starting…';
+  try {
+    const r = await api('/api/runs', {method:'POST', body: fd});
+    location.hash = '#/run/' + r.id;
+  } catch (e) {
+    $('#formerr').innerHTML = `<div class="banner err" style="margin-top:16px">${esc(e.message)}</div>`;
+    go.disabled = false; go.textContent = 'Run onboarding check';
+  }
+}
+
+/* ---------------- run view ---------------- */
+const ICON = {waiting:'', skipped:'–', pass:'✓', action:'↩', review:'⚑', stop:'✕'};
+const SEV = {pass:['✓',''], info:['•',''], vendor_fix:['↩','Vendor can fix'], review:['⚑','Needs a person'], reject:['✕','Policy stop']};
+let openPasses = new Set(), lastJson = '', msgTab = 'vendor', runStart = 0;
+
+function finding(f) {
+  const [ic, lab] = SEV[f.severity] || ['•',''];
+  return `<div class="finding f-${f.severity}"><div class="fi">${ic}</div><div><span class="ft">${esc(f.title)}</span>${lab ? `<span class="sev">${lab}</span>` : ''}${f.detail ? `<div class="fd">${esc(f.detail)}</div>` : ''}</div></div>`;
+}
+
+function stageHtml(s, i, run) {
+  const loud = s.findings.filter(f => !['pass','info'].includes(f.severity) || f.code === 'RESUBMISSION' || f.code === 'DECISION' || f.code === 'FREE_MAIL');
+  const quiet = s.findings.filter(f => !loud.includes(f));
+  const docs = (s.extra && s.extra.documents || []).map((d, n) => `
+    <div class="doc"><div class="dh"><b>${esc(d.file)}</b>
+      <a href="/api/runs/${encodeURIComponent(run.id)}/doc/${d.slot.startsWith('tax') ? 'tax_doc' : 'bank_doc'}" target="_blank" rel="noopener">open</a>
+      <span class="muted">read by ${esc(d.engine)}</span></div>
+      <div>Submitted as: ${esc(d.slot)}<br>Read as: <b>${esc(d.read_as)}</b></div>
+      ${d.note ? `<div class="muted" style="margin-top:4px">${esc(d.note)}</div>` : ''}
+      ${Object.keys(d.fields).length ? `<details style="margin-top:6px"><summary class="muted" style="cursor:pointer">Values read from this document</summary><dl class="kv" style="margin:6px 0 0">${Object.entries(d.fields).map(([k, v]) => `<dt>${esc(k.replace(/_/g, ' '))}</dt><dd>${esc(v)}</dd>`).join('')}</dl></details>` : ''}
+    </div>`).join('');
+  const body = ['waiting','skipped'].includes(s.status) ? `<div class="q">${esc(s.question)}</div>` :
+    s.status === 'running' ? `<div class="q">${esc(s.question)}</div>` :
+    `<div class="q">${esc(s.question)}</div>${docs}
+     ${loud.length ? `<div class="flist">${loud.map(finding).join('')}</div>` : ''}
+     ${quiet.length ? `<details class="passes" data-k="${s.key}" ${openPasses.has(s.key) ? 'open' : ''}><summary>${quiet.length} check${quiet.length > 1 ? 's' : ''} passed</summary>${quiet.map(finding).join('')}</details>` : ''}`;
+  const isDone = !['waiting','running','skipped'].includes(s.status);
+  return `<div class="stage s-${s.status} ${isDone ? 'done' : ''}">
+    <div class="ico">${s.status === 'running' ? '<div class="spin"></div>' : (ICON[s.status] || (i + 1))}</div>
+    <div class="body"><div class="top"><span class="name">${i + 1}. ${esc(s.title)}</span>
+      <span class="sum">${s.status === 'running' ? 'Working…' : esc(s.summary || '')}</span></div>${body}</div></div>`;
+}
+
+function sideHtml(run) {
+  if (run.state !== 'done') {
+    return `<div class="card"><h2>Decision</h2><div class="pending-msg">The decision appears here as soon as all seven stages have run. Nothing is decided until every check has had its say.</div></div>
+            <div class="card"><h2>Submission</h2>${subHtml(run)}</div>`;
+  }
+  const d = run.decision, cls = laneClass(run);
+  const explain = {
+    approved: run.lane === 'human' ? 'A reviewer approved this after looking at the evidence.' : 'No person needed. The vendor record was created and the vendor was told.',
+    vendor: 'Nothing here needs judgement, only information the vendor has to supply. They have been told exactly what.',
+    review: 'A person has to decide. The vendor has only been told their details are being checked.',
+    rejected: run.lane === 'human' ? 'A reviewer rejected this after looking at the evidence.' : 'A hard policy rule stopped this. No vendor record was created.'
+  }[cls];
+  const rs = d.resubmission ? `<div class="muted" style="margin-top:8px">Resubmission of <a href="#/run/${esc(d.resubmission.parent)}">${esc(d.resubmission.parent)}</a>: ${d.resubmission.resolved} earlier ${d.resubmission.resolved === 1 ? 'item' : 'items'} resolved, ${d.resubmission.still_open} still open.</div>` : '';
+  let html = `<div class="card decision d-${cls}">${badge(run)}
+      <div class="big">${esc(d.headline)}</div><div>${explain}</div>
+      ${d.decisive.length ? `<ul>${d.decisive.map(f => `<li><b>${esc(f.title)}</b></li>`).join('')}</ul>` : ''}
+      <div class="muted" style="margin-top:10px;font-size:13px">${d.checks_passed} ${d.checks_passed === 1 ? 'check' : 'checks'} passed · ${d.decisive.length} need attention · processing time ${fmtDur(run.duration_ms)}</div>${rs}</div>`;
+
+  if (run.review) {
+    html += `<div class="card"><h2>Reviewer decision</h2><div><b>${esc(run.review.reviewer)}</b> chose to <b>${esc(run.review.action)}</b> · ${fmtTime(run.review.at)}</div>
+      <div style="margin:6px 0">“${esc(run.review.note)}”</div><div class="muted">${esc(run.review.effect)}</div></div>`;
+  } else if (run.status === 'pending' && run.lane === 'review') {
+    html += `<div class="card" style="border-color:#c2b4ee"><h2>Your decision</h2>
+      <label for="rv_name">Reviewer</label><input type="text" id="rv_name" value="Procurement reviewer">
+      <label for="rv_note">Note for the audit trail <span class="muted">(required)</span></label><textarea id="rv_note" placeholder="What did you check, and what did you find?"></textarea>
+      <div id="rv_err"></div>
+      <div style="display:flex;gap:10px;margin-top:12px"><button class="btn good" id="rv_ok">Approve</button><button class="btn danger" id="rv_no">Reject</button></div></div>`;
+  }
+  if (run.status === 'pending' && run.lane === 'vendor') {
+    html += `<div class="card"><h2>Close the loop</h2><div class="muted" style="margin-bottom:10px">The vendor's email contains a link to a pre-filled form. Open it as the vendor would:</div>
+      <a class="btn" href="#/new?resubmit=${esc(run.id)}">Open the vendor's resubmission form</a></div>`;
+  }
+  const msgs = run.outbox || [];
+  if (msgs.length) {
+    const auds = [...new Set(msgs.map(m => m.audience))];
+    if (!auds.includes(msgTab)) msgTab = auds[0];
+    html += `<div class="card"><h2>What was communicated</h2>
+      <div class="tabs">${auds.map(a => `<button data-tab="${a}" class="${a === msgTab ? 'on' : ''}">${a === 'vendor' ? 'To the vendor' : 'To the reviewer'}</button>`).join('')}</div>
+      ${msgs.filter(m => m.audience === msgTab).map(m => `<div class="mail" style="margin-bottom:10px"><div class="mh"><b>To:</b> ${esc(m.to_addr)}<br><b>Subject:</b> ${esc(m.subject)}<br><span class="muted">${esc(m.delivery)} · written by ${esc(m.written_by)}</span></div><pre>${esc(m.body)}</pre></div>`).join('')}</div>`;
+  }
+  html += `<div class="card"><h2>Submission</h2>${subHtml(run)}</div>`;
+  return html;
+}
+
+function subHtml(run) {
+  const s = run.submission;
+  const rows = [['Legal name', s.legal_name], ['Country', META.countries[s.country] || s.country], ['Tax ID', s.tax_id], ['PAN', s.pan], ['Address', s.address], ['State / region', s.state_region],
+    ['Contact', [s.contact_name, s.contact_email].filter(Boolean).join(' · ')], ['Account holder', s.bank_account_holder], ['Account', s.bank_account], ['Bank code', s.bank_code],
+    ['Tax document', s.tax_doc_name], ['Bank document', s.bank_doc_name]].filter(r => r[1]);
+  return `<dl class="kv">${rows.map(([k, v]) => `<dt>${k}</dt><dd>${esc(v)}</dd>`).join('')}</dl>`;
+}
+
+async function showRun(id) {
+  openPasses = new Set(); lastJson = ''; msgTab = 'vendor'; runStart = Date.now();
+  view.innerHTML = '<div class="muted">Loading run…</div>';
+  const tick = async () => {
+    let run;
+    try { run = await api('/api/runs/' + encodeURIComponent(id)); }
+    catch (e) { clearInterval(pollTimer); view.innerHTML = `<div class="banner err">${esc(e.message)}</div>`; return; }
+    const json = JSON.stringify([run.state, run.stages, run.status, run.review, (run.outbox || []).length]);
+    if (json !== lastJson) { lastJson = json; drawRun(run); }
+    if (run.state === 'done') { clearInterval(pollTimer); refreshCount(); }
+  };
+  await tick();
+  pollTimer = setInterval(tick, 350);
+}
+
+function drawRun(run) {
+  const doneCount = run.stages.filter(s => !['waiting','running'].includes(s.status)).length;
+  view.innerHTML = `
+    <div class="runhead"><div style="flex:1;min-width:260px">
+      <h1>${esc(run.vendor_name)}</h1>
+      <div class="meta"><span class="mono">${esc(run.id)}</span>${badge(run)}
+        ${run.scenario ? `<span class="badge b-tag">${esc(run.scenario)}</span>` : ''}
+        ${run.parent_id ? `<span>resubmission of <a href="#/run/${esc(run.parent_id)}">${esc(run.parent_id)}</a></span>` : ''}
+        <span>${esc(META.countries[run.country] || run.country)}</span><span>started ${fmtTime(run.created_at)}</span>
+        <span>${run.state === 'done' ? 'processing time ' + fmtDur(run.duration_ms) : 'stage ' + Math.min(doneCount + 1, 7) + ' of 7'}</span></div></div>
+      <a class="btn" href="#/new">New submission</a><a class="btn" href="#/dashboard">Dashboard</a></div>
+    <div class="rungrid"><div>${run.stages.map((s, i) => stageHtml(s, i, run)).join('')}<div class="muted" style="font-size:12.5px;margin-left:46px">Each stage stays on screen for at least half a second so the run can be followed. Processing time is the real compute time.</div></div><div class="side">${sideHtml(run)}</div></div>`;
+  $$('details.passes').forEach(d => d.addEventListener('toggle', () => d.open ? openPasses.add(d.dataset.k) : openPasses.delete(d.dataset.k)));
+  $$('.tabs button').forEach(b => b.addEventListener('click', () => { msgTab = b.dataset.tab; drawRun(run); }));
+  const act = action => async () => {
+    try {
+      const updated = await api('/api/runs/' + encodeURIComponent(run.id) + '/review', {method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({action, reviewer: $('#rv_name').value, note: $('#rv_note').value})});
+      lastJson = ''; drawRun(updated); refreshCount();
+    } catch (e) { $('#rv_err').innerHTML = `<div class="banner err" style="margin-top:10px">${esc(e.message)}</div>`; }
+  };
+  if ($('#rv_ok')) { $('#rv_ok').addEventListener('click', act('approve')); $('#rv_no').addEventListener('click', act('reject')); }
+}
+
+/* ---------------- dashboard ---------------- */
+let dashFilter = 'all', dashSearch = '';
+async function showDashboard() {
+  view.innerHTML = `<div style="display:flex;align-items:flex-start;gap:12px;flex-wrap:wrap"><div style="flex:1"><h1>Dashboard</h1>
+    <p class="lead">Every submission, what was decided, and why. Click any row for the full stage-by-stage trail.</p></div>
+    <a class="btn primary" href="#/new">New submission</a><button class="btn" id="reset">Reset demo data</button></div>
+    <div id="dash"><div class="muted">Loading…</div></div>`;
+  let armed = false;
+  $('#reset').addEventListener('click', async e => {
+    if (!armed) { armed = true; e.target.textContent = 'Click again to clear all runs'; e.target.classList.add('danger'); setTimeout(() => { armed = false; e.target.textContent = 'Reset demo data'; e.target.classList.remove('danger'); }, 4000); return; }
+    await api('/api/reset', {method:'POST'}); armed = false; e.target.textContent = 'Reset demo data'; e.target.classList.remove('danger'); drawDash(); refreshCount();
+  });
+  await drawDash();
+  dashTimer = setInterval(drawDash, 3000);
+}
+
+async function drawDash() {
+  const el = $('#dash'); if (!el) return;
+  const {runs, kpi} = await api('/api/runs');
+  if ($('#q') && document.activeElement === $('#q')) dashSearch = $('#q').value;
+  const match = r => (dashFilter === 'all' || (dashFilter === 'approved' && r.status === 'approved') || (dashFilter === 'rejected' && r.status === 'rejected') ||
+      (dashFilter === 'vendor' && r.status === 'pending' && r.lane === 'vendor') || (dashFilter === 'review' && r.status === 'pending' && r.lane === 'review')) &&
+      (!dashSearch || (r.vendor_name + ' ' + r.id).toLowerCase().includes(dashSearch.toLowerCase()));
+  const rows = runs.filter(match);
+  const queue = runs.filter(r => r.status === 'pending' && r.lane === 'review');
+  const k = (v, l) => `<div class="kpi"><div class="v">${v ?? '–'}</div><div class="l">${l}</div></div>`;
+  const hadFocus = $('#q') && document.activeElement === $('#q'), caret = hadFocus ? $('#q').selectionStart : 0;
+  el.innerHTML = `
+    <div class="kpis">${k(kpi.total, 'Submissions')}${k(kpi.approved, 'Approved')}${k(kpi.pending_vendor, 'Waiting on vendor')}${k(kpi.pending_review, 'Need review')}${k(kpi.rejected, 'Rejected')}
+      ${k(kpi.auto_rate == null ? null : kpi.auto_rate + '%', 'Approved with no human touch')}${k(kpi.median_ms == null ? null : fmtDur(kpi.median_ms), 'Median processing time')}</div>
+    ${queue.length ? `<div class="card attention"><h2>⚑ Needs your decision (${queue.length})</h2>${queue.map(r => `<div class="item"><span class="mono">${esc(r.id)}</span><b>${esc(r.vendor_name)}</b><span class="muted" style="flex:1;min-width:200px">${esc(r.headline || '')}</span><a class="btn small" href="#/run/${esc(r.id)}">Review</a></div>`).join('')}</div>` : ''}
+    <div class="card"><div class="toolbar">
+      ${[['all','All'],['approved','Approved'],['vendor','Waiting on vendor'],['review','Needs review'],['rejected','Rejected']].map(([f, l]) => `<button class="chip ${dashFilter === f ? 'on' : ''}" data-f="${f}">${l}</button>`).join('')}
+      <input type="text" id="q" placeholder="Search vendor or run ID" value="${esc(dashSearch)}" style="margin-left:auto;max-width:240px" aria-label="Search runs"></div>
+      ${rows.length ? `<div class="tablewrap"><table><thead><tr><th>Run</th><th>Vendor</th><th>Outcome</th><th>Why</th><th>Case</th><th>Started</th><th>Processing</th></tr></thead><tbody>
+        ${rows.map(r => `<tr class="click" data-id="${esc(r.id)}"><td class="mono">${esc(r.id)}${r.parent_id ? `<div class="muted" style="font-size:11.5px">↳ ${esc(r.parent_id)}</div>` : ''}</td>
+          <td><b>${esc(r.vendor_name)}</b><div class="muted">${esc(META.countries[r.country] || r.country)}</div></td><td>${badge(r)}</td>
+          <td style="max-width:340px">${esc(r.headline || (r.state === 'running' ? 'In progress' : ''))}</td><td>${r.scenario ? `<span class="badge b-tag">${esc(r.scenario)}</span>` : '<span class="muted">manual</span>'}</td>
+          <td>${fmtTime(r.created_at)}</td><td>${fmtDur(r.duration_ms)}</td></tr>`).join('')}</tbody></table></div>`
+        : `<div class="empty">${runs.length ? 'No runs match this filter.' : 'No submissions yet. Start one from <a href="#/new">New submission</a>.'}</div>`}</div>`;
+  $$('.chip', el).forEach(c => c.addEventListener('click', () => { dashFilter = c.dataset.f; drawDash(); }));
+  $$('tr.click', el).forEach(tr => tr.addEventListener('click', () => { location.hash = '#/run/' + tr.dataset.id; }));
+  $('#q').addEventListener('input', e => { dashSearch = e.target.value; drawDash(); });
+  if (hadFocus) { $('#q').focus(); $('#q').setSelectionRange(caret, caret); }
+}
+
+/* ---------------- reference ---------------- */
+async function showReference() {
+  const d = await api('/api/reference');
+  view.innerHTML = `<h1>Rules &amp; reference data</h1>
+    <p class="lead">Nothing here is hidden inside a model. These are the rules the process applies and the data it checks against.</p>
+    <div class="card" style="margin-bottom:16px"><h2>How a decision is reached</h2>
+      <div class="policy">
+        <div style="background:var(--ok-bg)"><b style="color:var(--ok)">✓ Approved</b><br>Every check passes. Vendor record is created with no human touch.</div>
+        <div style="background:var(--warn-bg)"><b style="color:var(--warn)">↩ Pending · vendor</b><br>Something is missing, mistyped or the wrong document. The vendor is told exactly what to send.</div>
+        <div style="background:var(--rev-bg)"><b style="color:var(--rev)">⚑ Pending · review</b><br>A risk signal that needs judgement. A person decides; the vendor is not told which check fired.</div>
+        <div style="background:var(--bad-bg)"><b style="color:var(--bad)">✕ Rejected</b><br>A hard stop: blocklisted tax ID or an exact duplicate of an active vendor.</div>
+      </div>
+      <p style="margin:14px 0 0"><b>The outcome is the most serious finding.</b> There is no score and no AI vote. The AI model does two jobs only: it reads the documents, and it rewords requests to the vendor. Every pass or fail is a written rule.</p>
+      <p class="muted" style="margin:8px 0 0">Name matching: ${Math.round(d.policy.name_match * 100)}% or more similar after normalising legal suffixes counts as the same name; ${Math.round(d.policy.name_near * 100)}–${Math.round(d.policy.name_match * 100) - 1}% goes to a person; below that is a mismatch. Countries with automated rules: ${Object.values(META.countries).join(', ')}. Any other country goes to a person.</p></div>
+    <div class="two">
+      <div class="card"><h2>Active vendor master (${d.vendors.length})</h2><div class="tablewrap"><table><thead><tr><th>ID</th><th>Vendor</th><th>Tax ID</th><th>Bank acct</th></tr></thead><tbody>
+        ${d.vendors.map(v => `<tr><td class="mono">${esc(v.id)}</td><td><b>${esc(v.legal_name)}</b><div class="muted">${esc(v.source)}</div></td><td class="mono">${esc(v.tax_id)}</td><td class="mono">…${esc(v.bank_account.slice(-4))}</td></tr>`).join('')}</tbody></table></div></div>
+      <div class="card"><h2>Blocklist and watchlist (${d.blocklist.length})</h2><div class="tablewrap"><table><thead><tr><th>Entity</th><th>Type</th><th>Reason on file</th></tr></thead><tbody>
+        ${d.blocklist.map(b => `<tr><td><b>${esc(b.legal_name)}</b><div class="mono muted">${esc(b.tax_id || 'no tax ID on file')}</div></td><td>${esc(b.kind.replace(/_/g, ' '))}</td><td>${esc(b.reason)}</td></tr>`).join('')}</tbody></table></div>
+        <p class="muted" style="margin:10px 0 0;font-size:13px">In this demo these lists are seeded sample data. In production they would be the buyer's ERP vendor master and a sanctions screening service.</p></div>
+    </div>`;
+}
+
+boot().catch(e => { view.innerHTML = `<div class="banner err">Could not start: ${esc(e.message)}</div>`; });
+</script>
+</body>
+</html>
